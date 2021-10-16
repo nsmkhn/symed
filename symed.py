@@ -1,8 +1,13 @@
 import re
+import helpers
 
+ENCODING = 'ascii'
 ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 VALID_CHARS_REGEX_STR = "^[A-z0-9 ().,\"\n\r:;!?\'&-]+$"
 PATTERN = re.compile(VALID_CHARS_REGEX_STR)
+BASE_HEX = 16
+SEQUENCE_LEN_SEEK = 3
+NUM_TRY_FACTORS = 5
 
 """ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 
 -------------------------------------------------------
@@ -77,8 +82,8 @@ def encrypt_hex(plaintext, keyword):
     key_hex = ''.join(hex(ord(c))[2:].zfill(2) for c in key)
     ciphertext = bytearray()
     for i in range(0, len(plaintext_hex), 2):
-        ciphertext += bytearray.fromhex(hex(int(plaintext_hex[i:i+2], 16) ^ int(key_hex[i:i+2], 16))[2:].zfill(2))
-    return ciphertext.decode('ascii')
+        ciphertext += bytearray.fromhex(hex(int(plaintext_hex[i:i+2], BASE_HEX) ^ int(key_hex[i:i+2], BASE_HEX))[2:].zfill(2))
+    return ciphertext.decode(ENCODING)
 
 def decrypt_hex(ciphertext, keyword):
     key = keyword * (len(ciphertext) // len(keyword) + 1)
@@ -86,80 +91,22 @@ def decrypt_hex(ciphertext, keyword):
     key_hex = ''.join(hex(ord(c))[2:].zfill(2) for c in key)
     plaintext = bytearray()
     for i in range(0, len(ciphertext_hex), 2):
-        plaintext += bytearray.fromhex(hex(int(ciphertext_hex[i:i+2], 16) ^ int(key_hex[i:i+2], 16))[2:].zfill(2))
-    return plaintext.decode('ascii')
-
-def _find_factors(n):
-    factors = []
-    i = 2
-    while i <= n:
-        if (n % i == 0):
-            factors.append(i)
-        i += 1
-    return factors
-
-def _find_indexes_of_repeated_sequences(text, seq_len):
-    d = {}
-    for i in range(len(text)-seq_len-1):
-        string = text[i:i+seq_len]
-        if string not in d:
-            d[string] = []
-        d[string].append(i)
-    return [indexes for indexes in d.values() if len(indexes) > 1]
-
-def _find_spacings(rep_seq_indexes):
-    spacings = set()
-    for indexes in rep_seq_indexes:
-        for i in range(len(indexes)-1):
-            for j in range(i+1, len(indexes)):
-                spacings.add(indexes[j]-indexes[i])
-    return spacings
-
-def _foreach_find_factors(spacings):
-    factors = {}
-    for spacing in spacings:
-        for factor in _find_factors(spacing):
-            if factor not in factors:
-                factors[factor] = 0
-            factors[factor] += 1
-    return list(dict(sorted(factors.items(), key=lambda item: item[1], reverse = True)).keys())
-
-def _build_every_nth_substr(ciphertext, n):
-    substrings = {}
-    for i, letter in enumerate(ciphertext):
-        idx = i % n
-        if idx not in substrings:
-            substrings[idx] = ''
-        substrings[idx] = substrings[idx] + letter
-    return list(substrings.values())
-
-def _bruteforce_subkey(substr, pattern):
-    for key in range(128):
-        substr_hex = ''.join(hex(ord(c))[2:].zfill(2) for c in substr)
-        plaintext = bytearray()
-        for j in range(0, len(substr_hex), 2):
-            plaintext += bytearray.fromhex(hex(int(substr_hex[j:j+2], 16) ^ key)[2:].zfill(2))
-        if pattern.match(plaintext.decode('ascii')):
-            return chr(key)
-    return ''
+        plaintext += bytearray.fromhex(hex(int(ciphertext_hex[i:i+2], BASE_HEX) ^ int(key_hex[i:i+2], BASE_HEX))[2:].zfill(2))
+    return plaintext.decode(ENCODING)
 
 def hack(ciphertext, pattern):
-    indexes_arr = _find_indexes_of_repeated_sequences(ciphertext, 3)
-    spacings = _find_spacings(indexes_arr)
-    top_factors = _foreach_find_factors(spacings)[:5]
+    indexes_arr = helpers._find_indexes_of_repeated_sequences(ciphertext, SEQUENCE_LEN_SEEK)
+    spacings = helpers._find_spacings(indexes_arr)
+    top_factors = helpers._foreach_find_factors(spacings)[:NUM_TRY_FACTORS]
     for factor in top_factors:
         key = ''
-        for substr in _build_every_nth_substr(ciphertext, factor):
-            key += _bruteforce_subkey(substr, pattern)
+        for substr in helpers._build_every_nth_substr(ciphertext, factor):
+            key += helpers._bruteforce_subkey(substr, pattern)
         if len(key) == factor:
             return key
     return ''
 
-ct = ''
-with open('ciphertext', 'rb') as f:
-    ct = f.read().decode('ascii')
-
-key = hack(ct, PATTERN)
-print("key:", key)
-with open ('plaintext', 'w') as f:
-    f.write(decrypt_hex(ct, key))
+if __name__ == "__main__":
+    ct = ''
+    with open('ciphertext', 'rb') as f:
+        ct = f.read().decode(ENCODING)
