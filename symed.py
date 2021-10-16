@@ -3,50 +3,12 @@ import helpers
 
 ENCODING = 'ascii'
 ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+TABULA_RECTA = helpers._tabula_recta(ALPHABET)
 VALID_CHARS_REGEX_STR = "^[A-z0-9 ().,\"\n\r:;!?\'&-]+$"
 PATTERN = re.compile(VALID_CHARS_REGEX_STR)
 BASE_HEX = 16
 SEQUENCE_LEN_SEEK = 3
 NUM_TRY_FACTORS = 5
-
-""" A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 
--------------------------------------------------------
-A | A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
-B | B C D E F G H I J K L M N O P Q R S T U V W X Y Z A
-C | C D E F G H I J K L M N O P Q R S T U V W X Y Z A B
-D | D E F G H I J K L M N O P Q R S T U V W X Y Z A B C
-E | E F G H I J K L M N O P Q R S T U V W X Y Z A B C D
-F | F G H I J K L M N O P Q R S T U V W X Y Z A B C D E
-G | G H I J K L M N O P Q R S T U V W X Y Z A B C D E F
-H | H I J K L M N O P Q R S T U V W X Y Z A B C D E F G
-I | I J K L M N O P Q R S T U V W X Y Z A B C D E F G H
-J | J K L M N O P Q R S T U V W X Y Z A B C D E F G H I
-K | K L M N O P Q R S T U V W X Y Z A B C D E F G H I J
-L | L M N O P Q R S T U V W X Y Z A B C D E F G H I J K
-M | M N O P Q R S T U V W X Y Z A B C D E F G H I J K L
-N | N O P Q R S T U V W X Y Z A B C D E F G H I J K L M
-O | O P Q R S T U V W X Y Z A B C D E F G H I J K L M N
-P | P Q R S T U V W X Y Z A B C D E F G H I J K L M N O
-Q | Q R S T U V W X Y Z A B C D E F G H I J K L M N O P
-R | R S T U V W X Y Z A B C D E F G H I J K L M N O P Q
-S | S T U V W X Y Z A B C D E F G H I J K L M N O P Q R
-T | T U V W X Y Z A B C D E F G H I J K L M N O P Q R S
-U | U V W X Y Z A B C D E F G H I J K L M N O P Q R S T
-V | V W X Y Z A B C D E F G H I J K L M N O P Q R S T U
-W | W X Y Z A B C D E F G H I J K L M N O P Q R S T U V
-X | X Y Z A B C D E F G H I J K L M N O P Q R S T U V W
-Y | Y Z A B C D E F G H I J K L M N O P Q R S T U V W X
-Z | Z A B C D E F G H I J K L M N O P Q R S T U V W X Y """
-
-def tabula_recta(s):
-    tabula_recta = []
-    for i, letter in enumerate(s):
-        shifted = s[i:] + s[:i]
-        tabula_recta.append({letter: shifted[i] for i, letter in enumerate(s)})
-    tabula_recta = {letter: tabula_recta[i] for i, letter in enumerate(s)}
-    return tabula_recta
-
-TABULA_RECTA = tabula_recta(ALPHABET)
 
 def encrypt_tr(plaintext, keyword, tr):
     key = keyword * (len(plaintext) // len(keyword) + 1)
@@ -110,3 +72,8 @@ if __name__ == "__main__":
     ct = ''
     with open('ciphertext', 'rb') as f:
         ct = f.read().decode(ENCODING)
+    key = hack(ct, PATTERN)
+    print("key:", key)
+    plaintext = decrypt_hex(ct, key)
+    with open('plaintext', 'w') as f:
+        f.write(plaintext)
