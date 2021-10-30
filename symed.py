@@ -70,10 +70,10 @@ def hack(ciphertext, pattern):
 
 if __name__ == "__main__":
     ct = ''
-    with open('ciphertext', 'rb') as f:
+    with open('text/ciphertext', 'rb') as f:
         ct = f.read().decode(ENCODING)
     key = hack(ct, PATTERN)
     print("key:", key)
     plaintext = decrypt_hex(ct, key)
-    with open('plaintext', 'w') as f:
+    with open('text/plaintext', 'w') as f:
         f.write(plaintext)
